@@ -2,30 +2,34 @@
 // Created by trochej on 10/15/20.
 //
 
+#include <ctime>
 #include <iostream>
+#include <string>
 #include <boost/asio.hpp>
-#include <memory>
 
-using namespace boost;
+using boost::asio::ip::tcp;
 
-std::string readFromSocket(asio::ip::tcp::socket &socket){
-    asio::streambuf buf;
-    asio::read_until(socket, buf, "\n");
-    std::string data = asio::buffer_cast<const char*>(buf.data());
-    return data;
+int serve_agent(tcp::socket &socket)
+{
+	boost::system::error_code ignored_error;
+	boost::asio::write(socket, boost::asio::buffer("Helo, agent"), ignored_error);
+
+	return 0;
 }
 
-void writeToSocket(asio::ip::tcp::socket& socket, const std::string& message){
-    const std::string msg = message + "\n";
-    asio::write(socket, asio::buffer(message));
-}
+int main()
+{
+    boost::asio::io_context io_context;
 
-int main(int argc, char *argv[]){
-    asio::io_service iosrvc;
-    asio::ip::tcp::acceptor acceptor(iosrvc, asio::ip::tcp::endpoint(asio::ip::tcp::v4(), 2048));
-    asio::ip::tcp::socket socket(iosrvc);
-    acceptor.accept(socket);
-    std::string message = readFromSocket(socket);
-    writeToSocket(socket, "ACK");
-    return 0;
+    tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v4(), 5003));
+
+    for (;;)
+    {
+      tcp::socket socket(io_context);
+      acceptor.accept(socket);
+
+      serve_agent(socket);
+    }
+
+  return 0;
 }
